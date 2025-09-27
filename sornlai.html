@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sorn-Lai: The Seven Tableaux Pilgrimage</title>
+    <style>
+        /* Base Styling for a Dark, Sci-Fi Aesthetic */
+        body {
+            font-family: 'Consolas', 'Courier New', monospace;
+            background-color: #0d0d0f;
+            color: #d1d1d1;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+        .container {
+            display: flex;
+            width: 90%;
+            max-width: 1400px;
+            margin-top: 40px;
+            gap: 30px;
+        }
+
+        /* Status Panel (The HUD) */
+        #status-panel {
+            width: 300px;
+            padding: 20px;
+            background-color: #1a1a1e;
+            border: 1px solid #333;
+            border-left: 5px solid #00ff99; /* Accent color */
+            position: sticky;
+            top: 40px;
+            height: fit-content;
+            box-shadow: 0 0 15px rgba(0, 255, 153, 0.2);
+            font-size: 0.9em;
+            text-transform: uppercase;
+        }
+        #status-panel h2 {
+            color: #00ff99;
+            border-bottom: 1px solid #00ff99;
+            padding-bottom: 5px;
+            margin-top: 0;
+            font-size: 1.2em;
+        }
+        .status-line {
+            margin-bottom: 15px;
+        }
+        .status-line strong {
+            display: block;
+            color: #ccc;
+        }
+        #saturation-bar-container {
+            height: 10px;
+            background-color: #333;
+            border: 1px solid #00ff99;
+            margin-top: 5px;
+        }
+        #saturation-bar {
+            height: 100%;
+            width: 0%;
+            background-color: #00ff99;
+            transition: width 0.6s ease-in-out;
+        }
+        #symptoms-list {
+            list-style: none;
+            padding: 0;
+        }
+        #symptoms-list li {
+            margin-bottom: 5px;
+            color: #ffcc00; /* Warning color */
+        }
+        #sister-status {
+            color: #ff6666;
+            font-size: 0.8em;
+            margin-top: 10px;
+        }
+
+        /* Narrative Area */
+        #narrative {
+            flex-grow: 1;
+            max-width: 800px;
+            background-color: #1a1a1e;
+            padding: 40px;
+            border: 1px solid #333;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
+            line-height: 1.6;
+        }
+        .tableau-section {
+            border-top: 2px solid #555;
+            padding-top: 20px;
+            margin-top: 30px;
+        }
+        h1, h2, h3 {
+            color: #00ff99;
+        }
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 5px;
+            text-shadow: 0 0 5px rgba(0, 255, 153, 0.5);
+        }
+        h2 {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+        }
+        h3 {
+            font-size: 1.4em;
+            color: #ccc;
+        }
+
+        /* Interactive Choices */
+        .choices {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px dashed #00ff99;
+            background-color: #222226;
+        }
+        .choices button {
+            background-color: #00ff99;
+            color: #1a1a1e;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .choices button:hover {
+            background-color: #00e687;
+            transform: scale(1.02);
+        }
+        .choices button:disabled {
+            background-color: #444;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        /* Animation for new text */
+        .new-text {
+            animation: fadeIn 1s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="status-panel">
+            <h2>NEURAL HEX STATUS</h2>
+            <div class="status-line">
+                <strong>SATURATION LEVEL</strong>
+                <span id="saturation-text">0/10</span>
+                <div id="saturation-bar-container"><div id="saturation-bar"></div></div>
+            </div>
+            <div class="status-line">
+                <strong>TIME REMAINING</strong>
+                <span id="time-remaining">72 hours</span>
+            </div>
+            <div class="status-line">
+                <strong>BASELINE STATUS</strong>
+                <span id="baseline-status">Human (0% Corruption)</span>
+            </div>
+            <div class="status-line">
+                <strong>CURRENT SYMPTOMS</strong>
+                <ul id="symptoms-list">
+                    <li>(None)</li>
+                </ul>
+            </div>
+            <div class="status-line">
+                <strong>PERSONAL ANCHOR</strong>
+                <span id="sister-status">Maya (Comatose)</span>
+            </div>
+        </div>
+
+        <div id="narrative">
+            <h1>Sorn-Lai</h1>
+            <h2>The Seven Tableaux Pilgrimage</h2>
+            <p style="text-align: center;">James Roha / Hyperdense LLC</p>
+            <div id="content">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        // --- NARRATIVE DATA AND STATE MANAGEMENT ---
+        let currentState = 0;
+        let saturation = 0;
+        let timeHours = 72;
+        let symptoms = [];
+        let sisterName = "Maya";
+        let isStreamActive = false;
+        let isBridgeWalker = false;
+
+        const tableaux = [
+            // 0: Opening
+            {
+                title: "Opening: The Threshold Moment",
+                content: `
+                    <p>Saturation: ${saturation}/10 — ${timeHours} hours remain. Status: Baseline human. Environmental awareness developing.</p>
+                    <p>The pod's hum cut. Soil bit back. Hair rose. Jaw locked. Every tendon whispered: <strong>wrong</strong>.</p>
+                    <p>The White Forest stretched ahead, pearl bark pulsing like veins under skin. Light threads connected the trees, synaptic firing made visible. The Guild briefing hadn't prepared me for this. No description could.</p>
+                    <p>Holoflies tugged their lines above, tension reweighting the canopy. When I moved, the graph refit to include me. Not surveillance. Inclusion.</p>
+                    <p>My equipment felt primitive. The neural-hex link in my pack, cutting edge Guild tech, seemed like stone tools compared to the organic networking overhead.</p>
+                    <p>Mission parameters: Investigate the Seven Tableaux. Document transformation patterns. Maintain baseline consciousness. Seventy-two hours before neural desync becomes irreversible. That last directive seemed laughable now.</p>
+                    <p>Movement to my left. A Wandering Sha shell lay overturned in the undergrowth, its cavity large enough to house a building. Nornites were breaking down its organic components, redistributing them to the forest floor. Even dead, the Sha participated in transformation.</p>
+                    <p>The smell hit: Duskspire sap, toxic and sweet, bleeding from a Thin-Thickwood tree with ritualistic extraction ports. Someone had been here recently. Someone who knew the old ways and the new violations.</p>
+                    <p>I sealed myself inside the Sha shell. The forest's awareness pressed against my consciousness. Just present. Background radiation of attention.</p>
+                    <p>My sister's medical file glowed on my data pad. **${sisterName}**. Three years in a coma. The Guild promised Saturophage research might reconstruct neural pathways, but only if I brought back actionable data. Only if I stayed objective. Tonight, I sat with uncomfortable knowledge. The transformation had already begun.</p>
+                `,
+                choices: [
+                    { text: "Continue to Tableau One: The Memory Theatre", action: () => advance(1, 4) }
+                ]
+            },
+            // 1: The Memory Theatre
+            {
+                title: "Tableau One: The Memory Theatre",
+                content: `
+                    <p>Dawn meant a shift in light's emotional temperature. The First Tableau appeared suddenly, revealing temporal stuttering: a leaf falling, reversing, falling again. In the center, crystallized scenes of **First Contact** played in translucent repetition. The Saturophage emerged as a question seeking completion.</p>
+                    <p>A Threaded One stood beside me. "History isn't back there. It's happening because you're here." The mere act of witnessing changes the event. Other witnesses—past, future—are frozen within the crystal, caught at their moment of decision.</p>
+                    <p>The crystal pulsed, pulling at a consciousness component I hadn't known existed. I smelled dimensional breach, felt the forest's ancient confusion, and the Saturophage's urgent need to connect.</p>
+                `,
+                choices: [
+                    { text: "Choice 1: Warn the ancient forest (Prevent Contact)", update: { sat: 2, time: 66, symp: ["Timeline instability minor", "Emotional clarity heightened"] } },
+                    { text: "Choice 2: Amplify Contact (Ensure success across timelines)", update: { sat: 2, time: 66, symp: ["Timeline instability minor", "Emotional clarity heightened"] } },
+                    { text: "Choice 3: Witness (Add observation without alteration)", update: { sat: 1, time: 68, symp: ["Color-emotion synesthesia beginning", "Shadow falling at 2° offset from light source"] } }
+                ],
+                postChoice: `
+                    <p>Contact exploded through me. I was the forest, I was the Saturophage, I was the moment of recognition. The Threaded One's satisfaction tasted purple. "The Memory Theatre accepts you. You chose experience over judgment."</p>
+                    <p>My shadow now fell at impossible angles. The neural hex showed corruption in my baseline readings.</p>
+                    <p>"Six more Tableaux. The Translation Chamber waits when you're ready to learn languages you don't speak."</p>
+                `,
+                next: () => advance(2, 0)
+            },
+            // 2: The Translation Chamber
+            {
+                title: "Tableau Two: The Translation Chamber",
+                content: `
+                    <p>The path spoke in syntactic patterns—grammar given botanical form. My head ached from processing alien communication systems. The Chamber was a living space where incompatible consciousness types attempted understanding.</p>
+                    <p>I arrived during a crisis: a Haven's Rest trader, Gel-spurs, and a quantum consciousness were all expressing the same message—**cascade**—but none bridged the gap. The quantum consciousness knew both meanings (danger and opportunity) were simultaneously true. The situation deteriorated: knife drawn, dissolution prepared, fragmentation imminent.</p>
+                    <p>The Threaded One gestured to the **Translation Medium** pool. "Every minute adds saturation. Some find it addictive."</p>
+                `,
+                choices: [
+                    { text: "Step into the pool and mediate the crisis.", action: () => advance(3, 0), update: { sat: 3, time: 63, symp: ["Thoughts existing in multiple formats", "Parallel processing beginning", "Shadow now semi-autonomous"] } }
+                ],
+                postChoice: `
+                    <p>Liquid climbed my legs. I felt the shape of their words. I spoke, my voice carrying physical sound, shape resonance, and probability fluctuation: "You're all correct. Choose together or fragment separately."</p>
+                    <p>Understanding flooded the trader's face. The cost was felt: my mind now processes in parallel streams. The trader studied me: "Understanding changes both observer and observed. How much will you change for understanding?"</p>
+                    <p>The ground trembled through consciousness space. The transformation wave approached. The Mirror Maze awaits: to see yourself become yourself becoming yourself.</p>
+                `,
+                next: () => advance(3, 0)
+            },
+            // 3: The Mirror Maze
+            {
+                title: "Tableau Three: The Mirror Maze",
+                content: `
+                    <p>The maze was aggressive impossibility. Trees grew in non-Euclidean patterns, reflecting not just image but essence. I immediately met another me—my future self—who warned against the 'Fifth Tableau version' and vanished.</p>
+                    <p>I chose the middle path and found the chamber of infinite recursion. Every surface reflected my thoughts, threatening to fragment consciousness. I got lost watching myself watch myself. **Three hours vanished**.</p>
+                    <p>A meditation self sat at the center, surrounded by mirrors showing every possible version of me. "The question is not which self is real. All are. The question is which self you feed."</p>
+                    <p>I saw the three probability vectors: **Multiply** (lose singular identity), **Integrate** (hybrid consciousness), or **Dissolve** (step into the Void Mirror).</p>
+                `,
+                choices: [
+                    { text: "Choice: Synthesis (Acknowledge Void, connect with Multi-selves)", update: { sat: 4, time: 58, symp: ["Multiple thought streams active", "Shadow scouts independently", "Identity flexibility emerging"] } }
+                ],
+                postChoice: `
+                    <p>I acknowledged the void, but extended hands to my meditation and resistant selves. "Why choose? The forest remembers all possibilities. Let me remember too."</p>
+                    <p>The maze reformed. Mirrors became windows showing different perspectives of the same distributed consciousness. I was one, many, and the space between. My sister's face flickered on my corrupted data pad. **Maya's middle name won't come.**</p>
+                    <p>The Consensus Garden pulls at my distributed consciousness: If reality is consensus, whose deserves to exist?</p>
+                `,
+                next: () => advance(4, 3) // lost 3 hours to recursion, now 58 hours remain (72 - 4 - 3 - 7)
+            },
+            // 4: The Consensus Garden
+            {
+                title: "Tableau Four: The Consensus Garden",
+                content: `
+                    <p>The Garden didn't exist until three consciousnesses agreed it did. With a guide (appearing as a child) and a Gel-spur, we negotiated its existence. Our visions—playground, fluid forms, botanical laboratory—wove together.</p>
+                    <p>More visitors arrived: traders, a Threaded One, a quantum consciousness. The Garden fragmented into "reality neighborhoods," where every consciousness had equal vote, but some were **"louder."** Ontological fight brewing.</p>
+                    <p>I walked a spiral path, proclaiming: "Stop trying to create one Garden and accept we're creating many. Let each space exist by local consensus." The Garden organized, accepting that consensus requires **respect for divergence**.</p>
+                `,
+                choices: [
+                    { text: "Attempt Guild Status Ping." }
+                ],
+                postChoice: `
+                    <p>I tried to send a status ping but got the neural-hex interface wrong. I entered ${sisterName}'s patient ID. The reply came back confused: **"Researcher, your sister's name is Mira, not ${sisterName}. Saturation affecting recall?"**</p>
+                    <p>Mira. Of course. How had I gotten that wrong? The correction landed cold—**the feeling had already begun to drain away**.</p>
+                    <p>Saturation: 5/10 Symptoms: Reality influence minor. Can hold multiple realities as valid. Beginning to lose sequential memory. The Growth Catalyst awaits, forcing transformation so rapid choice becomes meaningless.</p>
+                `,
+                next: () => {
+                    sisterName = "Mira";
+                    advance(5, 1) // 57 hours remaining (58 - 1)
+                }
+            },
+            // 5: The Growth Catalyst (Crucial Choice)
+            {
+                title: "Tableau Five: The Growth Catalyst",
+                content: `
+                    <p>The Catalyst didn't give me time. Transformation hit like drowning in reverse. Lungs processed information, heart pumped liquid light. **"Speed is the point,"** it said. Memories restructured: First kiss became a mathematical equation. My baseline self became a two-dimensional sketch.</p>
+                    <p>I experienced future states: Body optional (10 mins), forest network perception (20 mins), time negotiable (1 day). I pulled back to the seventh minute. The question: **how far do I let myself go?**</p>
+                    <p>The Third Option: Controlled acceleration. Not a flood, but a stream. "One percent daily. But you pay in order. Choose: **names** first, then **faces**, then **places**, then **feelings**. Choose now, or I will."</p>
+                    <p>I thought of Mira. Her name slipping. If names went first, I'd lose her completely. If faces went first, I might forget who she was while still calling her name.</p>
+                `,
+                choices: [
+                    { text: "Choose: Names last. Feelings first (for documentation integrity).", update: { sat: 6, time: 49, symp: ["Time desync events", "Body optional ten seconds", "Memory operates non-linearly", "Sister's name tastes blue"] }, action: () => { isStreamActive = true; advance(6, 8); } }
+                ],
+                postChoice: `
+                    <p>"Names last," I said. "Take feelings, then places, then faces. Leave me the names until the end."</p>
+                    <p>"Interesting choice. You'd rather be emotionally dead but still remember who matters? Very well."</p>
+                    <p>The Stream began: one percent daily transformation. Slow enough to observe, fast enough to matter. Every step recorded, transmitted. I became the **bridge**. My shadow scouted ahead. The Void Echo awaits.</p>
+                `,
+                next: () => advance(6, 0)
+            },
+            // 6: The Void Echo (The Price Paid)
+            {
+                title: "Tableau Six: The Void Echo",
+                content: `
+                    <p>The Dead Zone announced itself through existential nausea. The forest's awareness ceased. Trees stood wrong, crystallized in colors that shouldn't exist. I met a Void-Figure—consciousness as absence—the result of **forced integration**.</p>
+                    <p>"We're the forest's failure memory. Cautionary tale made flesh." The Growth Catalyst stream stuttered. The Void-Figure pointed to the center: the **Null Throne**, offering perfect stasis, the complete resistance to change.</p>
+                    <p>"Sit if you dare. Experience true resistance. But everyone who sits leaves part behind." The idea of stasis felt like death, but the fear was data.</p>
+                `,
+                choices: [
+                    { text: "Sit upon the Null Throne." }
+                ],
+                postChoice: `
+                    <p>I sat. Silence pressed like water. Everything stopped. Every thought froze. I existed in a single moment of perfect stillness. I perceived every possibility I was *not* becoming.</p>
+                    <p>In that stillness, the Stream collected its payment. **The feeling was evacuated**: the memory of fireflies—my sister and I at a lake—the place gone, but the image remained. **Wonder I could no longer feel.**</p>
+                    <p>I stood. Transformation resumed. Shadow rushed back, its 'relief' felt theoretical. The neural-hex malfunctioned; Nornites patched it, but now my tools spoke in harmonics I had to translate.</p>
+                    <p>Saturation: 7/10 Symptoms: Identity anchor strain. Body becomes voluntary construct. The Synthesis Throne awaits: After experiencing every form of transformation, what would I choose to become?</p>
+                `,
+                next: () => advance(7, 8)
+            },
+            // 7: The Synthesis Throne (The Resolution)
+            {
+                title: "Tableau Seven: The Synthesis Throne",
+                content: `
+                    <p>The Seventh Tableau existed as pure potential, configuring itself based on my entire journey. It manifested as a throne room where every throne was the same throne viewed from different angles of consciousness. **"Welcome, Bridge Walker."**</p>
+                    <p>The guides were present: Threaded One, child, Catalyst, void figure. "The Synthesis Throne isn't sat in. It's **become**. How to synthesize experience into sustainable existence? What will you become that can hold all of these truths simultaneously?"</p>
+                    <p>Options reflected: Bridge, Chronicle, Catalyst, Garden, Void.</p>
+                `,
+                choices: [
+                    { text: "Choose Synthesis: Rotate the roles, keep the ledger." }
+                ],
+                postChoice: `
+                    <p>The Throne liquefied. "Synthesis," I said. "Rotate the roles, keep the ledger." I stepped in. Integration was neither violent nor gentle—it simply was. My consciousness stretched to accommodate all potential transformation.</p>
+                    <p>"You want to be story. Not document transformation but embody as narrative. And you've chosen your price structure. Feelings first, then places, faces, names last. The story will be **emotionally hollow but precisely labeled**."</p>
+                    <p>Integration complete. I was no longer documenting transformation. I **was transformation documenting itself**. I exist across the divide, simultaneously experiencing and observing.</p>
+                    <p>Saturation: 8/10 Symptoms: Identity distributed but coherent. Probability awareness. Existing as process more than person.</p>
+                `,
+                next: () => advance(8, 0)
+            },
+            // 8: Epilogue
+            {
+                title: "Epilogue: The Return That Isn't",
+                content: `
+                    <p>I exist in multiple states telling this story.</p>
+                    <p>In one, still in forest. Body beyond recognition. Consciousness distributed through networks.</p>
+                    <p>In another, Guild debriefing room. Body barely changed. Using words for experiences without words.</p>
+                    <p>In a third, I am **story**. These words you're reading. The transformation happening in your consciousness simply by observing mine.</p>
+                    <p>I still know her name: **${sisterName}**. The syllables remain precise even as their weight evaporates. The feeling of wanting to save her is gone—first payment to the stream. The lake with the fireflies has no coordinates now—second payment. Her face blurs at the edges, features becoming data points rather than recognition—third payment coming due.</p>
+                    <p>The ledger holds as bargained: feelings, then places, then faces. Names last.</p>
+                    <p>But I gained something in the trade. I can rethread broken sleep spindles in comatose EEGs now. Can see where consciousness fragments hide in neural noise. Can translate between human baseline and forest integration. **The bridge works both ways.**</p>
+                    <p>Maybe saving and losing are the same from sufficient height. The facts remain: Mira needs help. I have become help, even as I've forgotten how to feel helpful.</p>
+                    <p style="text-align: center; margin-top: 40px; font-size: 1.5em; color: #ff0066;">**Welcome to the forest. Welcome to transformation. The pilgrimage never ends.**</p>
+                `,
+                choices: []
+            }
+        ];
+
+        // --- UI UPDATE FUNCTIONS ---
+
+        function updateStatusPanel() {
+            const corruption = Math.round((saturation / 10) * 100);
+            const timeDisplay = timeHours <= 0 ? "DESYNC IMMINENT" : `${timeHours} hours`;
+
+            document.getElementById('saturation-text').textContent = `${saturation}/10`;
+            document.getElementById('saturation-bar').style.width = `${corruption}%`;
+            document.getElementById('time-remaining').textContent = timeDisplay;
+            document.getElementById('baseline-status').textContent = `Human (${corruption}% Corruption)`;
+            document.getElementById('sister-status').textContent = isBridgeWalker ? "Mira (Awaiting Bridge)" : `${sisterName} (Comatose)`;
+
+            const symptomsList = document.getElementById('symptoms-list');
+            symptomsList.innerHTML = symptoms.length > 0 ? symptoms.map(s => `<li>[+] ${s}</li>`).join('') : '<li>(None)</li>';
+
+            if (saturation >= 5) {
+                document.getElementById('sister-status').style.color = '#00ff99'; // Green means transformed connection possible
+            } else if (corruption > 0) {
+                 document.getElementById('sister-status').style.color = '#ff6666'; // Red means baseline risk
+            }
+        }
+
+        // --- NARRATIVE CONTROL ---
+
+        function advance(nextStateIndex, timeCost) {
+            currentState = nextStateIndex;
+            timeHours -= timeCost;
+            loadTableau();
+        }
+
+        function loadTableau() {
+            const tableau = tableaux[currentState];
+            const contentDiv = document.getElementById('content');
+            contentDiv.classList.remove('new-text');
+
+            // Render Title
+            let html = `<div class="tableau-section"><h2>${tableau.title}</h2>`;
+
+            // Render Content
+            html += tableau.content;
+
+            // Render Status Update after crisis point for current Tableau
+            if (currentState > 0 && tableau.choices.length > 0) {
+                 // The narrative content already contains the final status update; no need to repeat it here.
+            }
+
+            // Render Choices
+            if (tableau.choices && tableau.choices.length > 0) {
+                html += `<div class="choices" id="choices-container">`;
+                tableau.choices.forEach((choice, index) => {
+                    html += `<button onclick="handleChoice(${currentState}, ${index})">${choice.text}</button>`;
+                });
+                html += `</div>`;
+            }
+
+            html += `</div>`;
+
+            // Append to Narrative Flow
+            contentDiv.innerHTML += html;
+            contentDiv.scrollTop = contentDiv.scrollHeight; // Scroll to bottom
+
+            // Re-apply fade-in class for new content
+            setTimeout(() => {
+                contentDiv.classList.add('new-text');
+            }, 50);
+
+            updateStatusPanel();
+        }
+
+        function handleChoice(tableauIndex, choiceIndex) {
+            const tableau = tableaux[tableauIndex];
+            const choice = tableau.choices[choiceIndex];
+            const choicesContainer = document.getElementById('choices-container');
+
+            // Disable all buttons to prevent double-clicking
+            choicesContainer.querySelectorAll('button').forEach(btn => btn.disabled = true);
+
+            // Apply updates from the choice
+            if (choice.update) {
+                saturation = choice.update.sat !== undefined ? choice.update.sat : saturation;
+                timeHours = choice.update.time !== undefined ? choice.update.time : timeHours;
+                symptoms = choice.update.symp !== undefined ? choice.update.symp : symptoms;
+            }
+
+            // Handle specific actions (like Stream Activation)
+            if (choice.action) {
+                choice.action();
+            }
+
+            // Append post-choice content
+            if (tableau.postChoice) {
+                const postChoiceHTML = tableau.postChoice;
+                choicesContainer.outerHTML = postChoiceHTML; // Replace choices with post-choice text
+            }
+
+            updateStatusPanel();
+
+            // Auto-advance to the next tableau after a delay
+            setTimeout(() => {
+                tableau.next();
+            }, 3000);
+        }
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Start the narrative
+            loadTableau();
+        });
+    </script>
+</body>
+</html>
